@@ -1,0 +1,66 @@
+{
+  "flags": 32768,
+  "components": [
+    {
+      "type": 17,
+      "accent_color": 16744576,
+      "components": [
+        {
+          "type": 10,
+          "content": "# 🎂 Central de Aniversários do Servidor\n\nNunca mais esqueça de celebrar o dia especial dos seus amigos! Cadastre o dia e mês do seu aniversário e receba uma homenagem especial quando a data chegar."
+        },
+        {
+          "type": 14,
+          "divider": true,
+          "spacing": 1
+        },
+        {
+          "type": 10,
+          "content": "### 📌 Como funciona o cadastro?\n1. Clique no botão **Cadastrar Aniversário** abaixo.\n2. Escolha seu **mês** no menu dropdown do modal e informe o **dia**.\n3. O bot avisará a todos automaticamente quando a sua data chegar! 🎉\n||@everyone||"
+        },
+        {
+          "type": 12,
+          "items": [
+            {
+              "media": {
+                "url": "https://i.imgur.com/p0ChYB2.jpeg"
+              }
+            }
+          ]
+        },
+        {
+          "type": 14,
+          "divider": true,
+          "spacing": 1
+        },
+        {
+          "type": 1,
+          "components": [
+            {
+              "type": 2,
+              "custom_id": "btn_birthday_register",
+              "label": "Cadastrar Aniversário",
+              "style": 1,
+              "emoji": {
+                "name": "🎉"
+              }
+            },
+            {
+              "type": 2,
+              "custom_id": "btn_birthday_view",
+              "label": "Ver Meu Cadastro",
+              "style": 2,
+              "emoji": {
+                "name": "📅"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "button_actions": {
+    "btn_birthday_register": "register",
+    "btn_birthday_view": "view"
+  }
+}

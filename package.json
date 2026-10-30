@@ -1,0 +1,28 @@
+{
+  "name": "anivergato-bot",
+  "version": "1.0.0",
+  "description": "Discord Birthday Bot com Components V2 e Containers",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "tsx src/index.ts",
+    "start:dist": "node dist/index.js"
+  },
+  "keywords": ["discord", "bot", "birthday", "components-v2", "typescript"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.2.4",
+    "mongoose": "^9.2.1",
+    "node-cron": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

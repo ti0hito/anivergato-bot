@@ -156,7 +156,7 @@ export interface CelebrationOptions {
 }
 
 // GIF festivo comemorativo padrão (Gatinho de aniversário com bolo de festa)
-export const DEFAULT_CELEBRATION_GIF = 'https://media.giphy.com/media/l378z7EyVuFNLRwBy/giphy.gif';
+export const DEFAULT_CELEBRATION_GIF = 'https://i.imgur.com/76DUCCx.gif';
 
 /**
  * Cria o container comemorativo festivo.

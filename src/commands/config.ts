@@ -4,10 +4,13 @@ import {
   PermissionFlagsBits,
   ChannelType,
   TextChannel,
-  MessageFlags
+  MessageFlags,
+  ActionRowBuilder,
+  ButtonBuilder,
+  SeparatorBuilder
 } from 'discord.js';
 import { GuildConfig } from '../models/GuildConfig.js';
-import { createSuccessContainer } from '../utils/containerFactory.js';
+import { createSuccessContainer, createEditImagesButton } from '../utils/containerFactory.js';
 
 export const data = new SlashCommandBuilder()
   .setName('config-canal')
@@ -59,9 +62,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     details
   });
 
+  container
+    .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+    .addActionRowComponents(
+      new ActionRowBuilder<ButtonBuilder>().addComponents(createEditImagesButton('Editar'))
+    );
+
   return interaction.reply({
     components: [container],
     flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
   });
 }
-

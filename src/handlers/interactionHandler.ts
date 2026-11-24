@@ -2,7 +2,10 @@ import {
   Interaction,
   MessageFlags,
   PermissionFlagsBits,
-  TextChannel
+  TextChannel,
+  ActionRowBuilder,
+  ButtonBuilder,
+  SeparatorBuilder
 } from 'discord.js';
 import {
   openBirthdayV2Modal,
@@ -34,7 +37,9 @@ import {
   createSuccessContainer,
   createErrorContainer,
   createBirthdayViewContainer,
-  BTN_DELETE_SELF_ID
+  createEditImagesButton,
+  BTN_DELETE_SELF_ID,
+  BTN_EDIT_IMAGES_ID
 } from '../utils/containerFactory.js';
 
 import * as painelCommand from '../commands/painel.js';
@@ -92,8 +97,8 @@ export async function handleInteraction(interaction: Interaction) {
 
       const action = getActionForButtonId(interaction.customId);
 
-      // Botão "Editar": Apenas Administradores podem editar as imagens exclusivas do servidor
-      if (action === 'edit' || interaction.customId.includes('edit')) {
+      // Botão "Editar" (exibido apenas em mensagens efêmeras para Administradores)
+      if (interaction.customId === BTN_EDIT_IMAGES_ID || action === 'edit' || interaction.customId.includes('edit')) {
         if (!interaction.guild) {
           return interaction.reply({
             content: 'A edição só pode ser realizada dentro de um servidor.',
@@ -115,19 +120,6 @@ export async function handleInteraction(interaction: Interaction) {
         // Busca configurações salvas deste servidor específico
         const guildConfig = await GuildConfig.findOne({ guildId: interaction.guild.id });
         const { panelThumbnailUrl, panelBannerUrl, celebrationImageUrl } = getEffectiveGuildImages(guildConfig);
-
-        // Se o clique veio diretamente da mensagem do painel no canal (não efêmera), atualiza a referência da mensagem
-        if (interaction.message && !interaction.message.flags.has(MessageFlags.Ephemeral)) {
-          await GuildConfig.findOneAndUpdate(
-            { guildId: interaction.guild.id },
-            {
-              guildId: interaction.guild.id,
-              panelChannelId: interaction.channelId,
-              panelMessageId: interaction.message.id
-            },
-            { upsert: true }
-          );
-        }
 
         await openEditImagesModal(
           interaction,
@@ -165,6 +157,21 @@ export async function handleInteraction(interaction: Interaction) {
           });
         }
 
+        const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false;
+
+        // Se o clique veio do painel público no canal, salva a referência da mensagem do painel para atualizações ao vivo
+        if (interaction.message && !interaction.message.flags.has(MessageFlags.Ephemeral)) {
+          await GuildConfig.findOneAndUpdate(
+            { guildId: interaction.guild.id },
+            {
+              guildId: interaction.guild.id,
+              panelChannelId: interaction.channelId,
+              panelMessageId: interaction.message.id
+            },
+            { upsert: true }
+          );
+        }
+
         const record = await Birthday.findOne({
           guildId: interaction.guild.id,
           userId: interaction.user.id
@@ -176,6 +183,16 @@ export async function handleInteraction(interaction: Interaction) {
             message: 'Você ainda não registrou o seu aniversário neste servidor.',
             hint: 'Clique no botão "Cadastrar Aniversário" para cadastrar agora mesmo!'
           });
+
+          // Se for Administrador, exibe o botão "✏️ Editar" na resposta efêmera (visível só para ele)
+          if (isAdmin) {
+            errorContainer
+              .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+              .addActionRowComponents(
+                new ActionRowBuilder<ButtonBuilder>().addComponents(createEditImagesButton('Editar'))
+              );
+          }
+
           return interaction.reply({
             components: [errorContainer],
             flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
@@ -188,7 +205,8 @@ export async function handleInteraction(interaction: Interaction) {
           day: record.day,
           month: record.month,
           daysUntil,
-          isSelf: true
+          isSelf: true,
+          isAdmin
         });
 
         return interaction.reply({
@@ -258,26 +276,21 @@ export async function handleInteraction(interaction: Interaction) {
         let panelUpdatedLive = false;
         const updatedPresentation = buildGuildPresentationPayload(updatedConfig);
 
-        if (updatedPresentation.success) {
-          const editPayload = {
-            flags: updatedPresentation.payload.flags,
-            components: updatedPresentation.payload.components as any
-          };
-
-          // Tenta atualizar a mensagem do painel salva no banco para este servidor
-          if (updatedConfig?.panelChannelId && updatedConfig?.panelMessageId) {
-            try {
-              const ch = await interaction.guild.channels.fetch(updatedConfig.panelChannelId).catch(() => null);
-              if (ch && ch instanceof TextChannel) {
-                const msg = await ch.messages.fetch(updatedConfig.panelMessageId).catch(() => null);
-                if (msg) {
-                  await msg.edit(editPayload);
-                  panelUpdatedLive = true;
-                }
+        if (updatedPresentation.success && updatedConfig?.panelChannelId && updatedConfig?.panelMessageId) {
+          try {
+            const ch = await interaction.guild.channels.fetch(updatedConfig.panelChannelId).catch(() => null);
+            if (ch && ch instanceof TextChannel) {
+              const msg = await ch.messages.fetch(updatedConfig.panelMessageId).catch(() => null);
+              if (msg) {
+                await msg.edit({
+                  flags: updatedPresentation.payload.flags,
+                  components: updatedPresentation.payload.components as any
+                });
+                panelUpdatedLive = true;
               }
-            } catch (e) {
-              console.warn('[EditImages] Não foi possível editar a mensagem anterior do painel:', e);
             }
+          } catch (e) {
+            console.warn('[EditImages] Não foi possível editar a mensagem anterior do painel:', e);
           }
         }
 

@@ -7,11 +7,11 @@ import {
   MessageFlags,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  SeparatorBuilder
 } from 'discord.js';
 import { buildGuildPresentationPayload } from '../utils/presentationLoader.js';
 import { GuildConfig } from '../models/GuildConfig.js';
-import { createSuccessContainer, createErrorContainer } from '../utils/containerFactory.js';
+import { createSuccessContainer, createErrorContainer, createEditImagesButton } from '../utils/containerFactory.js';
 
 export const data = new SlashCommandBuilder()
   .setName('painel-aniversario')
@@ -90,10 +90,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       title: 'Painel publicado com sucesso!',
       message: `O painel de aniversários com Components V2 foi enviado em <#${targetChannel.id}>.`,
       details: [
-        `• **Botões ativos:** ${presentation.buttonIds.join(', ') || 'Nenhum'}`,
-        `• Clique em **✏️ Editar** no painel a qualquer momento para personalizar a Thumbnail, o Banner e o GIF de parabéns exclusivamente para este servidor!`
+        `• **Botões públicos no painel:** ${presentation.buttonIds.join(', ') || 'Nenhum'}`,
+        `• Use o botão **✏️ Editar** abaixo (visível apenas para você) para alterar as imagens deste servidor!`
       ]
     });
+
+    successContainer
+      .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+      .addActionRowComponents(
+        new ActionRowBuilder<ButtonBuilder>().addComponents(createEditImagesButton('Editar'))
+      );
 
     return interaction.reply({
       components: [successContainer],

@@ -20,6 +20,17 @@ export const COLORS = {
   INFO: 0x3498DB        // Azul Claro
 } as const;
 
+export const BTN_DELETE_SELF_ID = 'btn_birthday_delete_self';
+export const BTN_EDIT_IMAGES_ID = 'btn_birthday_edit';
+
+export function createEditImagesButton(label = 'Editar'): ButtonBuilder {
+  return new ButtonBuilder()
+    .setCustomId(BTN_EDIT_IMAGES_ID)
+    .setLabel(label)
+    .setStyle(ButtonStyle.Secondary)
+    .setEmoji('✏️');
+}
+
 export interface SuccessContainerOptions {
   title?: string;
   message?: string;
@@ -94,16 +105,16 @@ export interface BirthdayViewOptions {
   month: number;
   daysUntil: number;
   isSelf?: boolean;
+  isAdmin?: boolean;
 }
-
-export const BTN_DELETE_SELF_ID = 'btn_birthday_delete_self';
 
 export function createBirthdayViewContainer({
   user,
   day,
   month,
   daysUntil,
-  isSelf = true
+  isSelf = true,
+  isAdmin = false
 }: BirthdayViewOptions): ContainerBuilder {
   const formatted = formatBirthday(day, month);
   let countdownText = '';
@@ -130,18 +141,28 @@ export function createBirthdayViewContainer({
       )
     );
 
-  // Se estiver visualizando o próprio cadastro, adiciona o botão para remover com 1 clique
+  const buttons: ButtonBuilder[] = [];
+
   if (isSelf) {
+    buttons.push(
+      new ButtonBuilder()
+        .setCustomId(BTN_DELETE_SELF_ID)
+        .setLabel('Remover Meu Cadastro')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('🗑️')
+    );
+  }
+
+  // O botão Editar só aparece nessa resposta efêmera se quem clicou for Administrador
+  if (isAdmin) {
+    buttons.push(createEditImagesButton('Editar'));
+  }
+
+  if (buttons.length > 0) {
     container
       .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
       .addActionRowComponents(
-        new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setCustomId(BTN_DELETE_SELF_ID)
-            .setLabel('Remover Meu Cadastro')
-            .setStyle(ButtonStyle.Danger)
-            .setEmoji('🗑️')
-        )
+        new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons)
       );
   }
 

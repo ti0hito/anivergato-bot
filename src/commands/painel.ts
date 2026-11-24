@@ -4,9 +4,12 @@ import {
   PermissionFlagsBits,
   ChannelType,
   TextChannel,
-  MessageFlags
+  MessageFlags,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
 } from 'discord.js';
-import { loadPresentationConfig } from '../utils/presentationLoader.js';
+import { buildGuildPresentationPayload } from '../utils/presentationLoader.js';
 import { GuildConfig } from '../models/GuildConfig.js';
 import { createSuccessContainer, createErrorContainer } from '../utils/containerFactory.js';
 
@@ -43,8 +46,11 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     });
   }
 
-  // Carrega a configuração e componentes v2 do presentation.json
-  const presentation = loadPresentationConfig();
+  // Busca as configurações visuais exclusivas deste servidor no banco
+  const existingConfig = await GuildConfig.findOne({ guildId: interaction.guild.id });
+
+  // Constrói o painel aplicando as imagens e thumbnail (Section vs TextDisplay) deste servidor
+  const presentation = buildGuildPresentationPayload(existingConfig);
 
   if (!presentation.success) {
     const errorContainer = createErrorContainer({
@@ -58,7 +64,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   }
 
   try {
-    // Envia a mensagem com os containers e botões definidos no JSON
     const sendOptions: any = {
       flags: presentation.payload.flags,
       components: presentation.payload.components as any
@@ -70,7 +75,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
     const sentMessage = await targetChannel.send(sendOptions);
 
-    // Salva no banco de dados para referência
+    // Salva a referência da mensagem do painel no banco de dados deste servidor
     await GuildConfig.findOneAndUpdate(
       { guildId: interaction.guild.id },
       {
@@ -85,7 +90,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       title: 'Painel publicado com sucesso!',
       message: `O painel de aniversários com Components V2 foi enviado em <#${targetChannel.id}>.`,
       details: [
-        `• **Botões detectados no JSON:** ${presentation.buttonIds.join(', ') || 'Nenhum'}`
+        `• **Botões ativos:** ${presentation.buttonIds.join(', ') || 'Nenhum'}`,
+        `• Clique em **✏️ Editar** no painel a qualquer momento para personalizar a Thumbnail, o Banner e o GIF de parabéns exclusivamente para este servidor!`
       ]
     });
 
@@ -105,4 +111,3 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     });
   }
 }
-

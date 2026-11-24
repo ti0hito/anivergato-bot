@@ -2,7 +2,10 @@ import {
   ChatInputCommandInteraction,
   SlashCommandBuilder,
   PermissionFlagsBits,
-  MessageFlags
+  MessageFlags,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
 } from 'discord.js';
 import { Birthday } from '../models/Birthday.js';
 import { getLocalToday } from '../services/birthdayScheduler.js';
@@ -52,11 +55,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   let isSimulation = false;
 
   if (targetUser) {
-    // Simulação com o usuário especificado
     userIdsToNotify = [targetUser.id];
     isSimulation = true;
   } else {
-    // Busca os aniversariantes cadastrados para hoje no servidor
     const todayBirthdays = await Birthday.find({
       guildId: interaction.guild.id,
       day,
@@ -66,14 +67,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     if (todayBirthdays.length > 0) {
       userIdsToNotify = todayBirthdays.map(b => b.userId);
     } else {
-      // Se ninguém fizer aniversário hoje, usa o próprio autor do comando para simular o teste visual
       userIdsToNotify = [interaction.user.id];
       isSimulation = true;
     }
   }
 
-  // Envia a mensagem no canal configurado com o GIF e layout V2
-  const sentCount = await sendGuildBirthdaysNotification(
+  await sendGuildBirthdaysNotification(
     interaction.client,
     interaction.guild.id,
     userIdsToNotify,
@@ -84,7 +83,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
   const successContainer = createSuccessContainer({
     title: 'Notificação de Teste Enviada!',
-    message: `A mensagem festiva com o GIF animado foi enviada com sucesso no canal <#${targetChannelId}>.`,
+    message: `A mensagem festiva foi enviada com sucesso no canal <#${targetChannelId}>.`,
     details: [
       `• **Canal:** <#${targetChannelId}>`,
       `• **Membro(s) parabenizado(s):** ${targetList}`,
@@ -93,6 +92,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         : `• **Modo:** Aniversariante(s) real(is) do dia (${day}/${month})`
     ]
   });
+
+  // Adiciona botão rápido de editar imagens também na confirmação do teste
+  successContainer.addActionRowComponents(
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId('btn_birthday_edit')
+        .setLabel('Editar Imagens deste Servidor')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji('✏️')
+    )
+  );
 
   return interaction.reply({
     components: [successContainer],

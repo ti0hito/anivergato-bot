@@ -53,6 +53,15 @@
               "emoji": {
                 "name": "📅"
               }
+            },
+            {
+              "type": 2,
+              "custom_id": "btn_birthday_edit",
+              "label": "Editar",
+              "style": 2,
+              "emoji": {
+                "name": "✏️"
+              }
             }
           ]
         }
@@ -61,6 +70,7 @@
   ],
   "button_actions": {
     "btn_birthday_register": "register",
-    "btn_birthday_view": "view"
+    "btn_birthday_view": "view",
+    "btn_birthday_edit": "edit"
   }
 }

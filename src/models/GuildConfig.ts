@@ -26,6 +26,18 @@ const GuildConfigSchema = new Schema<GuildConfigDocument>(
     panelMessageId: {
       type: String,
       default: null
+    },
+    panelThumbnailUrl: {
+      type: String,
+      default: undefined
+    },
+    panelBannerUrl: {
+      type: String,
+      default: undefined
+    },
+    celebrationImageUrl: {
+      type: String,
+      default: undefined
     }
   },
   {
@@ -37,4 +49,3 @@ export const GuildConfig: Model<GuildConfigDocument> = mongoose.model<GuildConfi
   'GuildConfig',
   GuildConfigSchema
 );
-

@@ -2,6 +2,7 @@ import { Client, MessageFlags, TextChannel, GuildBasedChannel } from 'discord.js
 import { Birthday } from '../models/Birthday.js';
 import { GuildConfig } from '../models/GuildConfig.js';
 import { createCelebrationContainer } from '../utils/containerFactory.js';
+import { getEffectiveGuildImages } from '../utils/presentationLoader.js';
 
 /**
  * Envia uma mensagem comemorativa única reunindo todos os aniversariantes do dia daquele servidor
@@ -18,7 +19,7 @@ export async function sendGuildBirthdaysNotification(
     const guild = await client.guilds.fetch(guildId).catch(() => null);
     if (!guild) return 0;
 
-    // Busca canal configurado no servidor
+    // Busca canal e imagens configuradas exclusivamente neste servidor
     const config = await GuildConfig.findOne({ guildId });
     let channel: GuildBasedChannel | null = null;
 
@@ -36,12 +37,16 @@ export async function sendGuildBirthdaysNotification(
       return 0;
     }
 
+    // Resolve o GIF/imagem de comemoração personalizado deste servidor
+    const { celebrationImageUrl } = getEffectiveGuildImages(config);
+
     // Monta o Container v2 festivo com todos os aniversariantes agrupados
     const roleMention = config?.announcementRoleId ? `<@&${config.announcementRoleId}>` : null;
     const container = createCelebrationContainer({
       userIds,
       guildName: guild.name,
-      roleMention
+      roleMention,
+      gifUrl: celebrationImageUrl
     });
 
     await channel.send({

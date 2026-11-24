@@ -14,6 +14,9 @@ export interface IGuildConfig {
   announcementRoleId: string | null;
   panelChannelId: string | null;
   panelMessageId: string | null;
+  panelThumbnailUrl?: string | null;
+  panelBannerUrl?: string | null;
+  celebrationImageUrl?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -29,7 +32,7 @@ export interface ExtractedButton {
   };
 }
 
-export type BirthdayAction = 'register' | 'view' | 'remove' | string;
+export type BirthdayAction = 'register' | 'view' | 'remove' | 'edit' | string;
 
 export interface PresentationConfig {
   success: boolean;
@@ -44,4 +47,3 @@ export interface PresentationConfig {
   buttonIds: string[];
   actionMap: Map<string, BirthdayAction>;
 }
-

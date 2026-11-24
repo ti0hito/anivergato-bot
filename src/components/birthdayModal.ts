@@ -2,14 +2,18 @@ import {
   ButtonInteraction,
   TextInputBuilder,
   TextInputStyle,
-  StringSelectMenuBuilder,
-  MessageFlags
+  StringSelectMenuBuilder
 } from 'discord.js';
 import { MONTH_OPTIONS } from '../utils/dateUtils.js';
 
 export const MODAL_REGISTER_ID = 'modal_birthday_register';
 export const INPUT_DAY_ID = 'birth_day';
 export const SELECT_MONTH_ID = 'birth_month';
+
+export const MODAL_EDIT_IMAGES_ID = 'modal_birthday_edit_images';
+export const INPUT_THUMBNAIL_ID = 'input_panel_thumbnail';
+export const INPUT_PANEL_BANNER_ID = 'input_panel_banner';
+export const INPUT_CELEBRATION_IMG_ID = 'input_celebration_img';
 
 /**
  * Remove propriedade label conflitante em componentes aninhados
@@ -93,6 +97,77 @@ export async function openBirthdayV2Modal(
 }
 
 /**
+ * Abre o Modal V2 para Administradores editarem as imagens do servidor (isolado por Guild)
+ */
+export async function openEditImagesModal(
+  interaction: ButtonInteraction,
+  currentThumbnail: string | null,
+  currentPanelBanner: string | null,
+  currentCelebrationImg: string | null
+): Promise<void> {
+  const thumbInput = new TextInputBuilder()
+    .setCustomId(INPUT_THUMBNAIL_ID)
+    .setPlaceholder('URL da imagem/GIF (ou deixe vazio para texto limpo)')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false);
+
+  if (currentThumbnail) {
+    thumbInput.setValue(currentThumbnail);
+  }
+
+  const bannerInput = new TextInputBuilder()
+    .setCustomId(INPUT_PANEL_BANNER_ID)
+    .setPlaceholder('URL do banner do painel (ou deixe vazio para remover)')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false);
+
+  if (currentPanelBanner) {
+    bannerInput.setValue(currentPanelBanner);
+  }
+
+  const celebrationInput = new TextInputBuilder()
+    .setCustomId(INPUT_CELEBRATION_IMG_ID)
+    .setPlaceholder('URL do GIF/imagem de parabéns (ou deixe vazio para remover)')
+    .setStyle(TextInputStyle.Short)
+    .setRequired(false);
+
+  if (currentCelebrationImg) {
+    celebrationInput.setValue(currentCelebrationImg);
+  }
+
+  const rawModalData = {
+    type: 9,
+    data: {
+      title: '🖼️ Editar Imagens do Servidor',
+      custom_id: MODAL_EDIT_IMAGES_ID,
+      components: [
+        {
+          type: 18,
+          label: '🖼️ Thumbnail do Topo (Vazio = Texto Comum)',
+          component: cleanJSON(thumbInput)
+        },
+        {
+          type: 18,
+          label: '🏞️ Banner do Painel de Cadastro',
+          component: cleanJSON(bannerInput)
+        },
+        {
+          type: 18,
+          label: '🎉 GIF / Imagem da Notificação de Parabéns',
+          component: cleanJSON(celebrationInput)
+        }
+      ]
+    },
+    flags: 1 << 15
+  };
+
+  await (interaction.client.rest as any).post(
+    `/interactions/${interaction.id}/${interaction.token}/callback`,
+    { body: rawModalData }
+  );
+}
+
+/**
  * Função utilitária para extrair valores de formulários V2 (TextInput e SelectMenu)
  */
 export function getModalV2Value(customId: string, interaction: any): string | null {
@@ -129,7 +204,7 @@ export function getModalV2Value(customId: string, interaction: any): string | nu
 
     const comp = findComp(row);
     if (comp) {
-      if (comp.values !== undefined && Array.isArray(comp.values)) return comp.values[0] || null;
+      if (comp.values !== undefined && Array.isArray(comp.values)) return comp.values[0] ?? null;
       if (comp.value !== undefined) return comp.value;
     }
   }

@@ -1,11 +1,13 @@
 import { REST, Routes } from 'discord.js';
 import * as painelCommand from '../commands/painel.js';
+import * as editarCommand from '../commands/editar.js';
 import * as aniversarioCommand from '../commands/aniversario.js';
 import * as configCommand from '../commands/config.js';
 import * as testarCommand from '../commands/testar.js';
 
 export const slashCommands = [
   painelCommand.data,
+  editarCommand.data,
   aniversarioCommand.data,
   configCommand.data,
   testarCommand.data
@@ -30,4 +32,3 @@ export async function registerSlashCommands(token: string, clientId: string) {
     console.error('❌ [SlashCommands] Falha ao registrar comandos:', error.message);
   }
 }
-

@@ -5,6 +5,7 @@ import {
   TextChannel,
   ActionRowBuilder,
   ButtonBuilder,
+  ButtonStyle,
   SeparatorBuilder
 } from 'discord.js';
 import {
@@ -43,12 +44,16 @@ import {
 } from '../utils/containerFactory.js';
 
 import * as painelCommand from '../commands/painel.js';
+import * as editarCommand from '../commands/editar.js';
 import * as aniversarioCommand from '../commands/aniversario.js';
 import * as configCommand from '../commands/config.js';
 import * as testarCommand from '../commands/testar.js';
 
+export const BTN_PUBLISH_HERE_ID = 'btn_birthday_publish_here';
+
 const commands = new Map<string, any>([
   [painelCommand.data.name, painelCommand],
+  [editarCommand.data.name, editarCommand],
   [aniversarioCommand.data.name, aniversarioCommand],
   [configCommand.data.name, configCommand],
   [testarCommand.data.name, testarCommand]
@@ -95,6 +100,62 @@ export async function handleInteraction(interaction: Interaction) {
         });
       }
 
+      // Botão especial: Publicar o painel já editado diretamente no canal atual
+      if (interaction.customId === BTN_PUBLISH_HERE_ID) {
+        if (!interaction.guild) return;
+
+        if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+          const errorContainer = createErrorContainer({
+            title: 'Acesso Restrito',
+            message: 'Apenas **Administradores** podem publicar o painel.'
+          });
+          return interaction.reply({
+            components: [errorContainer],
+            flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
+          });
+        }
+
+        const targetChannel = interaction.channel;
+        if (!targetChannel || !(targetChannel instanceof TextChannel)) {
+          const errorContainer = createErrorContainer({
+            title: 'Canal inválido',
+            message: 'Use este botão em um canal de texto do servidor ou utilize `/painel-aniversario`.'
+          });
+          return interaction.reply({
+            components: [errorContainer],
+            flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
+          });
+        }
+
+        const existingConfig = await GuildConfig.findOne({ guildId: interaction.guild.id });
+        const presentation = buildGuildPresentationPayload(existingConfig);
+
+        const sentMessage = await targetChannel.send({
+          flags: presentation.payload.flags,
+          components: presentation.payload.components as any
+        });
+
+        await GuildConfig.findOneAndUpdate(
+          { guildId: interaction.guild.id },
+          {
+            guildId: interaction.guild.id,
+            panelChannelId: targetChannel.id,
+            panelMessageId: sentMessage.id
+          },
+          { upsert: true }
+        );
+
+        const publishedContainer = createSuccessContainer({
+          title: 'Painel enviado com sucesso!',
+          message: `O painel já personalizado para **${interaction.guild.name}** foi publicado em <#${targetChannel.id}>.`
+        });
+
+        return interaction.update({
+          components: [publishedContainer],
+          flags: [MessageFlags.IsComponentsV2]
+        });
+      }
+
       const action = getActionForButtonId(interaction.customId);
 
       // Botão "Editar" (exibido apenas em mensagens efêmeras para Administradores)
@@ -117,7 +178,6 @@ export async function handleInteraction(interaction: Interaction) {
           });
         }
 
-        // Busca configurações salvas deste servidor específico
         const guildConfig = await GuildConfig.findOne({ guildId: interaction.guild.id });
         const { panelThumbnailUrl, panelBannerUrl, celebrationImageUrl } = getEffectiveGuildImages(guildConfig);
 
@@ -159,7 +219,6 @@ export async function handleInteraction(interaction: Interaction) {
 
         const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) ?? false;
 
-        // Se o clique veio do painel público no canal, salva a referência da mensagem do painel para atualizações ao vivo
         if (interaction.message && !interaction.message.flags.has(MessageFlags.Ephemeral)) {
           await GuildConfig.findOneAndUpdate(
             { guildId: interaction.guild.id },
@@ -184,7 +243,6 @@ export async function handleInteraction(interaction: Interaction) {
             hint: 'Clique no botão "Cadastrar Aniversário" para cadastrar agora mesmo!'
           });
 
-          // Se for Administrador, exibe o botão "✏️ Editar" na resposta efêmera (visível só para ele)
           if (isAdmin) {
             errorContainer
               .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
@@ -237,7 +295,6 @@ export async function handleInteraction(interaction: Interaction) {
         const bannerRaw = (getModalV2Value(INPUT_PANEL_BANNER_ID, interaction) ?? '').trim();
         const celebrationRaw = (getModalV2Value(INPUT_CELEBRATION_IMG_ID, interaction) ?? '').trim();
 
-        // Valida se as URLs preenchidas são válidas
         const urlChecks: Array<{ label: string; value: string }> = [
           { label: 'Thumbnail do Topo', value: thumbRaw },
           { label: 'Banner do Painel', value: bannerRaw },
@@ -272,7 +329,7 @@ export async function handleInteraction(interaction: Interaction) {
           { upsert: true, returnDocument: 'after' }
         );
 
-        // Atualiza a mensagem do painel ao vivo no canal deste servidor
+        // Se já houver um painel ativo no servidor, atualiza-o ao vivo
         let panelUpdatedLive = false;
         const updatedPresentation = buildGuildPresentationPayload(updatedConfig);
 
@@ -295,17 +352,30 @@ export async function handleInteraction(interaction: Interaction) {
         }
 
         const successContainer = createSuccessContainer({
-          title: 'Imagens do Servidor Atualizadas!',
+          title: 'Imagens do Servidor Salvas!',
           message: `As configurações visuais de **${interaction.guild.name}** foram salvas separadamente sem afetar nenhum outro servidor.`,
           details: [
             `• **Thumbnail do Topo:** ${thumbRaw ? `Ativada como Section (\`Thumbnail\`)` : `Desativada (Texto Comum limpo)`}`,
             `• **Banner do Painel:** ${bannerRaw ? `[Link configurado](${bannerRaw})` : `Removido (Sem banner)`}`,
             `• **GIF/Imagem de Parabéns:** ${celebrationRaw ? `[Link configurado](${celebrationRaw})` : `Removido (Sem imagem)`}`,
             panelUpdatedLive
-              ? `• ✨ **O painel ativo no servidor já foi atualizado automaticamente!**`
-              : `• 💡 Use \`/painel-aniversario\` quando quiser publicar um novo painel.`
+              ? `• ✨ **O painel já publicado no servidor foi atualizado automaticamente!**`
+              : `• 📤 **Pronto para enviar!** Clique em **Enviar Painel Neste Canal** abaixo ou use \`/painel-aniversario\`.`
           ]
         });
+
+        successContainer
+          .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+          .addActionRowComponents(
+            new ActionRowBuilder<ButtonBuilder>().addComponents(
+              new ButtonBuilder()
+                .setCustomId(BTN_PUBLISH_HERE_ID)
+                .setLabel('Enviar Painel Neste Canal')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('📤'),
+              createEditImagesButton('Editar Novamente')
+            )
+          );
 
         return interaction.reply({
           components: [successContainer],
@@ -317,7 +387,6 @@ export async function handleInteraction(interaction: Interaction) {
       if (interaction.customId === MODAL_REGISTER_ID) {
         if (!interaction.guild) return;
 
-        // Extrai os valores do modal V2 usando o extrator flexível
         const dayRaw = getModalV2Value(INPUT_DAY_ID, interaction);
         const monthRaw = getModalV2Value(SELECT_MONTH_ID, interaction);
 
@@ -327,7 +396,6 @@ export async function handleInteraction(interaction: Interaction) {
         const monthName = MONTH_NAMES[month - 1] || `Mês ${month}`;
         const maxDays = getMaxDaysInMonth(month);
 
-        // Validação da data
         if (!month || !isValidBirthday(day, month)) {
           const errorContainer = createErrorContainer({
             title: 'Data Inválida!',
@@ -348,7 +416,6 @@ export async function handleInteraction(interaction: Interaction) {
           }
         }
 
-        // Salva ou atualiza no MongoDB Atlas
         await Birthday.findOneAndUpdate(
           {
             guildId: interaction.guild.id,
@@ -401,7 +468,6 @@ export async function handleInteraction(interaction: Interaction) {
     }
   } catch (error: any) {
     if (error?.code === 40060 || error?.code === 10062) {
-      // Interação já respondida ou expirada
       return;
     }
 

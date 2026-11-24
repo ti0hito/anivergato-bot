@@ -111,6 +111,7 @@ O `presentationLoader.ts` varre os componentes, encontra o botão com `custom_id
 | Comando | Descrição | Permissão |
 |---|---|---|
 | `/painel-aniversario [canal]` | Envia o painel de apresentação configurado no `presentation.json` | Administrador |
+| `/editar-painel` | Abre o modal para configurar/editar Thumbnail, Banner e GIF do servidor antes (ou depois) de enviar | Administrador |
 | `/config-canal [canal] [cargo]` | Define o canal de anúncios e cargo mencionado nos aniversários | Administrador |
 | `/testar-notificacao [usuario]` | Dispara imediatamente o card comemorativo festivo com GIF no canal | Administrador |
 | `/aniversario listar` | Lista todos os aniversariantes do servidor por data | Administrador |

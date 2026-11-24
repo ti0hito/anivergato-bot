@@ -1,5 +1,6 @@
 import {
   ButtonInteraction,
+  ChatInputCommandInteraction,
   TextInputBuilder,
   TextInputStyle,
   StringSelectMenuBuilder
@@ -100,7 +101,7 @@ export async function openBirthdayV2Modal(
  * Abre o Modal V2 para Administradores editarem as imagens do servidor (isolado por Guild)
  */
 export async function openEditImagesModal(
-  interaction: ButtonInteraction,
+  interaction: ButtonInteraction | ChatInputCommandInteraction,
   currentThumbnail: string | null,
   currentPanelBanner: string | null,
   currentCelebrationImg: string | null
